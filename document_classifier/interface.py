@@ -11,13 +11,98 @@ import os
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
+translations = {
+    'en': {
+        'title': "Document Classification System",
+        'model_select': "Select Classification Model",
+        'pull_model': "Pull Selected Model",
+        'pulling_model': "Pulling model... {progress:.2f}% ({completed}/{total} bytes)",
+        'option_radio': "Choose an option",
+        'upload_files': "Upload Files",
+        'scan_directory': "Scan Directory",
+        'please_select': "Please select a directory to scan for document classification.",
+        'directory_path': "Directory path",
+        'scanning_directory': "Scanning directory {directory}...",
+        'failed_to_fetch': "Failed to fetch installed models.",
+        'error_classifying': "An error occurred while classifying the document: {str(e)}",
+        'error_reading_pdf': "Error reading PDF: {str(e)}",
+        'error_reading_docx': "Error reading DOCX: {str(e)}",
+        'unsupported_file': "Unsupported file type: {file_extension}",
+        'classification_results': "Classification Results",
+        'classification': "Classification",
+        'distribution': "Distribution of Document Classifications",
+        'download_results': "Download results as CSV",
+        'no_valid_documents': "No valid documents were processed. Please check your files and try again.",
+        'upload_document': "Upload document(s) for classification",
+        'completed': "File Classification Complete!",
+        'file': "File:",
+
+        'about': "About",
+        'about1': 'This document classification system uses advanced Language Model technology',
+        'about2': 'to categorize your documents into five security levels: Top Secret, Secret,',
+        'about3': 'Confidential, Restricted, and Unclassified. Simply upload your documents and',
+        'about4': 'receive instant classification results.',
+
+        'instructions': "Instructions",
+        'instructions1': "1. Select a classification model from the dropdown menu.",
+        'instructions2': "2. Upload one or more documents using the file uploader.",
+        'instructions3': "3. Supported file types: TXT, PDF, DOCX",
+        'instructions4': "4. The system will automatically process and classify each document.",
+        'instructions5': "5. View the results in the table and pie chart.",
+        'instructions6': "6. Download the results as a CSV file if needed."
+    },
+    'tr': {
+        'title': "Belge Sınıflandırma Sistemi",
+        'model_select': "Sınıflandırma Modelini Seçin",
+        'pull_model': "Seçilen Modeli Çek",
+        'pulling_model': "Model çekiliyor... {progress:.2f}% ({completed}/{total} bayt)",
+        'option_radio': "Bir seçenek belirleyin",
+        'upload_files': "Dosya Yükle",
+        'scan_directory': "Dizini Tara",
+        'please_select': "Belge sınıflandırması için taranacak bir dizin seçin.",
+        'directory_path': "Dizin yolu",
+        'scanning_directory': "Dizin taranıyor {directory}...",
+        'failed_to_fetch': "Yüklü modeller alınamadı.",
+        'error_classifying': "Belge sınıflandırılırken bir hata oluştu: {str(e)}",
+        'error_reading_pdf': "PDF okunurken hata oluştu: {str(e)}",
+        'error_reading_docx': "DOCX okunurken hata oluştu: {str(e)}",
+        'unsupported_file': "Desteklenmeyen dosya türü: {file_extension}",
+        'classification_results': "Sınıflandırma Sonuçları",
+        'classification': "Sınıflandırma",
+        'distribution': "Belge Sınıflandırmalarının Dağılımı",
+        'download_results': "Sonuçları CSV olarak indir",
+        'no_valid_documents': "Geçerli belge işlenmedi. Lütfen dosyalarınızı kontrol edin ve tekrar deneyin.",
+        'upload_document': "Sınıflandırma için belge(ler) yükleyin",
+        'completed': "Dosya Sınıflandırma Tamamlandı!",
+        'file': "Dosya:",
+
+        'about': "Hakkında",
+        'about1': 'Bu belge sınıflandırma sistemi, belgelerinizi beş güvenlik seviyesine',
+        'about2': 'sınıflandırmak için gelişmiş Dil Modeli teknolojisini kullanır: Çok Gizli, Gizli,',
+        'about3': 'Hizmete Özel, Sınırlı ve Sınıflandırılmamış. Belgelerinizi yükleyin ve',
+        'about4': 'anında sınıflandırma sonuçları alın.',
+
+        'instructions': "Kullanım Talimatları",
+        'instructions1': "1. Açılır menüden bir sınıflandırma modeli seçin.",
+        'instructions2': "2. Dosya yükleyin veya dizin taraması yapın.",
+        'instructions3': "3. Desteklenen dosya türleri: TXT, PDF, DOCX",
+        'instructions4': "4. Sistem otomatik olarak her belgeyi işleyecek ve sınıflandıracak.",
+        'instructions5': "5. Sonuçları tablo ve pasta grafiği ile görüntüleyin.",
+        'instructions6': "6. Sonuçları CSV dosyası olarak indirin."
+    }
+}
+
+def t(key):
+    return translations[st.session_state.lang_code].get(key, key)
+
+
 def get_installed_models():
     response = requests.get(f"{API_URL}/tags")
     if response.status_code == 200:
         models = response.json()["models"]
         return [model["name"].split(":")[0] for model in models]
     else:
-        st.error("Failed to fetch installed models.")
+        st.error(t("failed_to_fetch"))
         return []
     
 def classify_document(text, model):
@@ -26,7 +111,7 @@ def classify_document(text, model):
         response.raise_for_status()
         return response.json()["classification"]
     except requests.RequestException as e:
-        st.error(f"An error occurred while classifying the document: {str(e)}")
+        st.error(t("error_classifying"))
         return "Classification Error"
 
 def extract_text_from_document(file):
@@ -100,16 +185,18 @@ def scan_directory(directory, model):
     return results
 
 st.set_page_config(page_title="Document Classification System", layout="wide")
+lang = st.selectbox("Select Language / Dil Seçin", ["English", "Türkçe"], index=0, key="lang")
+st.session_state.lang_code = 'en' if lang == "English" else 'tr'
 
-st.title("Document Classification System")
+st.title(t("title"))
 
 installed_models = get_installed_models()
 local_models = ["gemma2", "phi3", "llama3", "mistral", "llama3.1", "mistral-nemo", "mertergun/phi3_finetuned", "gemma2", "qwen2"]
 all_models = installed_models + [m for m in local_models if m not in installed_models] + ["gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "gpt-4-turbo", "gpt-4o", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro", "gpt-4o-mini"]
 
-model = st.selectbox("Select Classification Model", all_models)
+model = st.selectbox(t("model_select"), all_models)
 if model not in installed_models and model in local_models:
-            if st.button("Pull Selected Model"):
+            if st.button(t("pull_model")):
                 progress_bar = st.progress(0)
                 status_text = st.empty()
                 
@@ -149,37 +236,37 @@ if model not in installed_models and model in local_models:
                     st.error("Failed to pull the selected model.")
 
 # Set a radio button to select the select upload files or scan a directory
-option = st.radio("Choose an option", ["Upload Files", "Scan Directory"])
+option = st.radio(t("option_radio"), [t("upload_files"), t("scan_directory")])
 
-if option == "Scan Directory":
-    st.write("Please select a directory to scan for document classification.")
-    directory = st.text_input("Directory path", value=".")
-    if st.button("Scan Directory"):
-        with st.spinner(f'Scanning directory {directory}...'):
+if option == t("scan_directory"):
+    st.write(t("please_select"))
+    directory = st.text_input(t("directory_path"), value=".")
+    if st.button(t("scan_directory")):
+        with st.spinner(t(f'scanning_directory')):
             results = scan_directory(directory, model)
         
         if results:
             results_df = pd.DataFrame(results)
-            st.subheader("Classification Results")
+            st.subheader(t("classification_results"))
             st.dataframe(results_df, use_container_width=True)
             
             # Visualization
-            fig = px.pie(results_df, names='Classification', title='Distribution of Document Classifications')
+            fig = px.pie(results_df, names=t('classification'), title=t('distribution'))
             st.plotly_chart(fig)
             
             # Download results
             csv = results_df.to_csv(index=False)
             st.download_button(
-                label="Download results as CSV",
+                label=t("download_results"),
                 data=csv,
                 file_name="classification_results.csv",
                 mime="text/csv",
             )
         else:
-            st.warning("No valid documents were processed. Please check your files and try again.")
+            st.warning(t("no_valid_documents"))
 
 else:
-    uploaded_files = st.file_uploader("Upload document(s) for classification", accept_multiple_files=True, type=['txt', 'pdf', 'docx'])
+    uploaded_files = st.file_uploader(t("upload_document"), accept_multiple_files=True, type=['txt', 'pdf', 'docx'])
 
     if uploaded_files:
         results = []
@@ -194,7 +281,7 @@ else:
             results_df = pd.DataFrame(results)
             
             if len(results) == 1:
-                st.success(f"File Classification Complete!")
+                st.success(t(f"completed"))
                 st.markdown(f"<h2 style='text-align: center; color: #1E90FF;'>Classification Result</h2>", unsafe_allow_html=True)
                 st.markdown(f"<h3 style='text-align: center;'>File: {results[0]['Filename']}</h3>", unsafe_allow_html=True)
                 
@@ -214,38 +301,38 @@ else:
                 st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
 
             else:
-                st.subheader("Classification Results")
+                st.subheader(t("classification_results"))
                 st.dataframe(results_df, use_container_width=True)
                 
                 # Visualization
-                fig = px.pie(results_df, names='Classification', title='Distribution of Document Classifications')
+                fig = px.pie(results_df, names=t('classification'), title=t('distribution'))
                 st.plotly_chart(fig)
             
             # Download results
             csv = results_df.to_csv(index=False)
             st.download_button(
-                label="Download results as CSV",
+                label=t("download_results"),
                 data=csv,
                 file_name="classification_results.csv",
                 mime="text/csv",
             )
         else:
-            st.warning("No valid documents were processed. Please check your files and try again.")
+            st.warning(t("no_valid_documents"))
 
-st.sidebar.title("About")
+st.sidebar.title(t("about"))
 st.sidebar.info(
-    "This document classification system uses advanced Language Model technology "
-    "to categorize your documents into five security levels: Top Secret, Secret, "
-    "Confidential, Restricted, and Unclassified. Simply upload your documents and "
-    "receive instant classification results."
+    f"{t('about1')}\n"
+    f"{t('about2')}\n"
+    f"{t('about3')}\n"
+    f"{t('about4')}"
 )
 
-st.sidebar.title("Instructions")
+st.sidebar.title(t("instructions"))
 st.sidebar.write(
-    "1. Select a classification model from the dropdown menu.\n"
-    "2. Upload one or more documents using the file uploader.\n"
-    "3. Supported file types: TXT, PDF, DOCX\n"
-    "4. The system will automatically process and classify each document.\n"
-    "5. View the results in the table and pie chart.\n"
-    "6. Download the results as a CSV file if needed."
+    f"{t('instructions1')}\n"
+    f"{t('instructions2')}\n"
+    f"{t('instructions3')}\n"
+    f"{t('instructions4')}\n"
+    f"{t('instructions5')}\n"
+    f"{t('instructions6')}"
 )
