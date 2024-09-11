@@ -49,7 +49,7 @@ translations = {
         'instructions': "Instructions",
         'instructions1': "1. Select a classification model from the dropdown menu.",
         'instructions2': "2. Upload one or more documents using the file uploader.",
-        'instructions3': "3. Supported file types: TXT, PDF, DOCX",
+        'instructions3': "3. Supported file types: TXT, PDF, DOCX, DOC, PPTX, XLSX, CSV, PSV",
         'instructions4': "4. The system will automatically process and classify each document.",
         'instructions5': "5. View the results in the table and pie chart.",
         'instructions6': "6. Download the results as a CSV file if needed."
@@ -88,7 +88,7 @@ translations = {
         'instructions': "Kullanım Talimatları",
         'instructions1': "1. Açılır menüden bir sınıflandırma modeli seçin.",
         'instructions2': "2. Dosya yükleyin veya dizin taraması yapın.",
-        'instructions3': "3. Desteklenen dosya türleri: TXT, PDF, DOCX",
+        'instructions3': "3. Desteklenen dosya türleri: TXT, PDF, DOCX, DOC, PPTX, XLSX, CSV, PSV",
         'instructions4': "4. Sistem otomatik olarak her belgeyi işleyecek ve sınıflandıracak.",
         'instructions5': "5. Sonuçları tablo ve pasta grafiği ile görüntüleyin.",
         'instructions6': "6. Sonuçları CSV dosyası olarak indirin."
