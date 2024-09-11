@@ -84,7 +84,7 @@ async def classify_document_api(input_text: InputText):
         result = await classify_document(input_text.text, input_text.model, input_text.lang)
         print(result)
         if result not in ["top secret", "secret", "confidential", "restricted", "unclassified"] and result not in ["çok gizli", "gizli", "hizmete özel", "kısıtlı", "sınıflandırılmamış"]:
-            result = "unclassified"  # Default to unclassified if the model output is unexpected
+            result = "ERROR!!"  # Default to unclassified if the model output is unexpected
             print("Defaulting to unclassified")
         return {"classification": result}
     except Exception as e:

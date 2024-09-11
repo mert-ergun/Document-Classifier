@@ -8,6 +8,9 @@ import requests
 import time
 import json
 import os
+from openpyxl import load_workbook
+from pptx import Presentation
+import csv
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
@@ -16,13 +19,13 @@ translations = {
         'title': "Document Classification System",
         'model_select': "Select Classification Model",
         'pull_model': "Pull Selected Model",
-        'pulling_model': "Pulling model... {progress:.2f}% ({completed}/{total} bytes)",
+        'pulling_model': "Pulling model...",
         'option_radio': "Choose an option",
         'upload_files': "Upload Files",
         'scan_directory': "Scan Directory",
         'please_select': "Please select a directory to scan for document classification.",
         'directory_path': "Directory path",
-        'scanning_directory': "Scanning directory {directory}...",
+        'scanning_directory': "Scanning directory",
         'failed_to_fetch': "Failed to fetch installed models.",
         'error_classifying': "An error occurred while classifying the document: {str(e)}",
         'error_reading_pdf': "Error reading PDF: {str(e)}",
@@ -55,13 +58,13 @@ translations = {
         'title': "Belge Sınıflandırma Sistemi",
         'model_select': "Sınıflandırma Modelini Seçin",
         'pull_model': "Seçilen Modeli Çek",
-        'pulling_model': "Model çekiliyor... {progress:.2f}% ({completed}/{total} bayt)",
+        'pulling_model': "Model çekiliyor... ",
         'option_radio': "Bir seçenek belirleyin",
         'upload_files': "Dosya Yükle",
         'scan_directory': "Dizini Tara",
         'please_select': "Belge sınıflandırması için taranacak bir dizin seçin.",
         'directory_path': "Dizin yolu",
-        'scanning_directory': "Dizin taranıyor {directory}...",
+        'scanning_directory': "Dizin taranıyor",
         'failed_to_fetch': "Yüklü modeller alınamadı.",
         'error_classifying': "Belge sınıflandırılırken bir hata oluştu: {str(e)}",
         'error_reading_pdf': "PDF okunurken hata oluştu: {str(e)}",
@@ -116,68 +119,94 @@ def classify_document(text, model):
         return "Classification Error"
 
 def extract_text_from_document(file):
-    # If file is a string, it's a file path
     if isinstance(file, str):
         file_extension = os.path.splitext(file)[1].lower()
-        if file_extension == '.txt':
-            with open(file, 'r', encoding='utf-8') as file:
-                return file.read()
-        elif file_extension == '.pdf':
-            try:
-                with open(file, 'rb') as file:
-                    pdf_reader = PyPDF2.PdfReader(file)
-                    text = ""
-                    for page in pdf_reader.pages:
-                        text += page.extract_text() + "\n"
-                    return text
-            except Exception as e:
-                st.error(f"Error reading PDF: {str(e)}")
-                return ""
-        elif file_extension in ['.docx', '.doc']:
-            try:
-                doc = docx.Document(file)
-                return "\n".join([para.text for para in doc.paragraphs])
-            except Exception as e:
-                st.error(f"Error reading DOCX: {str(e)}")
-                return ""
-        else:
-            st.error(f"Unsupported file type: {file_extension}")
-            return ""
-        
+        with open(file, 'rb') as f:
+            file_content = f.read()
     else:
-        file_extension = file.name.split('.')[-1].lower()
-        
-        if file_extension == 'txt':
-            return file.getvalue().decode("utf-8")
-        
-        elif file_extension == 'pdf':
-            try:
-                pdf_reader = PyPDF2.PdfReader(io.BytesIO(file.getvalue()))
-                text = ""
-                for page in pdf_reader.pages:
-                    text += page.extract_text() + "\n"
-                return text
-            except Exception as e:
-                st.error(f"Error reading PDF: {str(e)}")
-                return ""
-        
-        elif file_extension in ['docx', 'doc']:
-            try:
-                doc = docx.Document(io.BytesIO(file.getvalue()))
-                return "\n".join([para.text for para in doc.paragraphs])
-            except Exception as e:
-                st.error(f"Error reading DOCX: {str(e)}")
-                return ""
-        
-        else:
-            st.error(f"Unsupported file type: {file_extension}")
-            return ""
+        file_extension = os.path.splitext(file.name)[1].lower()
+        file_content = file.getvalue()
+
+    if file_extension == '.txt':
+        return file_content.decode('utf-8')
+    elif file_extension == '.pdf':
+        return extract_text_from_pdf(file_content)
+    elif file_extension in ['.docx', '.doc']:
+        return extract_text_from_docx(file_content)
+    elif file_extension == '.pptx':
+        return extract_text_from_pptx(file_content)
+    elif file_extension in ['.xlsx', '.xls']:
+        return extract_text_from_excel(file_content)
+    elif file_extension in ['.csv', '.psv']:
+        return extract_text_from_csv(file_content, delimiter=',' if file_extension == '.csv' else '|')
+    else:
+        st.error(f"Unsupported file type: {file_extension}")
+        return ""
+
+
+def extract_text_from_pdf(file_content):
+    try:
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
+        return "\n".join([page.extract_text() for page in pdf_reader.pages])
+    except Exception as e:
+        st.error(f"Error reading PDF: {str(e)}")
+        return ""
+    
+
+def extract_text_from_docx(file_content):
+    try:
+        doc = docx.Document(io.BytesIO(file_content))
+        return "\n".join([para.text for para in doc.paragraphs])
+    except Exception as e:
+        st.error(f"Error reading DOCX: {str(e)}")
+        return ""
+    
+
+def extract_text_from_pptx(file_content):
+    try:
+        prs = Presentation(io.BytesIO(file_content))
+        text = []
+        for slide in prs.slides:
+            for shape in slide.shapes:
+                if hasattr(shape, 'text'):
+                    text.append(shape.text)
+        return "\n".join(text)
+    except Exception as e:
+        st.error(f"Error reading PPTX: {str(e)}")
+        return ""
+
+
+def extract_text_from_excel(file_content):
+    try:
+        wb = load_workbook(io.BytesIO(file_content), read_only=True)
+        text = []
+        for sheet in wb.sheetnames:
+            ws = wb[sheet]
+            for row in ws.iter_rows(values_only=True):
+                text.append("\t".join(str(cell) for cell in row if cell is not None))
+        return "\n".join(text)
+    except Exception as e:
+        st.error(f"Error reading Excel file: {str(e)}")
+        return ""
+
+
+def extract_text_from_csv(file_content, delimiter=','):
+    try:
+        text = []
+        csv_data = csv.reader(io.StringIO(file_content.decode('utf-8')), delimiter=delimiter)
+        for row in csv_data:
+            text.append("\t".join(row))
+        return "\n".join(text)
+    except Exception as e:
+        st.error(f"Error reading CSV/PSV file: {str(e)}")
+        return ""
+
     
 def scan_directory(directory, model):
     results = []
     for root, _, files in os.walk(directory):
         for file in files:
-            if file.lower().endswith(('.txt', '.pdf', '.docx', '.doc')):
+            if file.lower().endswith(('.txt', '.pdf', '.docx', '.doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv')):
                 file_path = os.path.join(root, file)
                 text = extract_text_from_document(file_path)
                 if text:
@@ -243,7 +272,7 @@ if option == t("scan_directory"):
     st.write(t("please_select"))
     directory = st.text_input(t("directory_path"), value=".")
     if st.button(t("scan_directory")):
-        with st.spinner(t(f'scanning_directory')):
+        with st.spinner(f"{t('scanning_directory')} {directory}..."):
             results = scan_directory(directory, model)
         
         if results:
@@ -252,7 +281,7 @@ if option == t("scan_directory"):
             st.dataframe(results_df, use_container_width=True)
             
             # Visualization
-            fig = px.pie(results_df, names=t('classification'), title=t('distribution'))
+            fig = px.pie(results_df, names="Classification", title=t('distribution'))
             st.plotly_chart(fig)
             
             # Download results
@@ -267,7 +296,7 @@ if option == t("scan_directory"):
             st.warning(t("no_valid_documents"))
 
 else:
-    uploaded_files = st.file_uploader(t("upload_document"), accept_multiple_files=True, type=['txt', 'pdf', 'docx'])
+    uploaded_files = st.file_uploader(t("upload_document"), accept_multiple_files=True, type=['txt', 'pdf', 'docx', 'doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv'])
 
     if uploaded_files:
         results = []
@@ -298,6 +327,8 @@ else:
                     color = "#0000FF" 
                 elif classification.lower() == "unclassified" or classification.lower() == "sınıflandırılmamış":
                     color = "#008000"  
+                else: # Means error
+                    color = "#000000"
                 
                 st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
 
@@ -306,7 +337,7 @@ else:
                 st.dataframe(results_df, use_container_width=True)
                 
                 # Visualization
-                fig = px.pie(results_df, names=t('classification'), title=t('distribution'))
+                fig = px.pie(results_df, names="Classification", title=t('distribution'))
                 st.plotly_chart(fig)
             
             # Download results
