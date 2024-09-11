@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "document-classifier"
+version = "0.1.0"
+description = "A document classification system using advanced Language Model technology"
+authors = ["Mert ERGÜN <mertergun17@hotmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.114.0"
+openai = "^1.44.1"
+google-generativeai = "^0.8.0"
+aiohttp = "^3.10.5"
+uvicorn = "^0.30.6"
+streamlit = "^1.38.0"
+plotly = "^5.24.0"
+pypdf2 = "^3.0.1"
+python-docx = "^1.1.2"
+python-dotenv = "^1.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+start-api = "uvicorn document_classifier.api:app --host 0.0.0.0 --port 8000"
+start-streamlit = "streamlit run document_classifier/interface.py"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+
+[tool.poetry.extras]
+docker = ["Dockerfile", "Dockerfile.streamlit", "docker-compose.yml", ".dockerignore"]
