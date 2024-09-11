@@ -20,12 +20,16 @@ gemini_api_key = os.getenv("GOOGLE_API_KEY")
 client = OpenAI(api_key=openai_api_key)
 genai.configure(api_key=gemini_api_key)
 
-with open("system_prompt.txt", "r") as f:
-    system_prompt = f.read()
+with open("system_prompt_en.txt", "r") as f:
+    system_prompt_en = f.read()
+
+with open("system_prompt_tr.txt", "r") as f:
+    system_prompt_tr = f.read()
 
 class InputText(BaseModel):
     text: str
     model: str = "gemma2"
+    lang: str = "en"
 
 class PullModel(BaseModel):
     model: str
@@ -40,7 +44,9 @@ async def query_ollama(session, model, prompt):
         result = await response.json()
         return model, result.get("response").strip().lower()
 
-async def classify_document(input_text: str, model: str):
+async def classify_document(input_text: str, model: str, lang: str):
+    system_prompt = system_prompt_en if lang == "en" else system_prompt_tr
+
     prompt = f"{system_prompt}\n\nDocument content: {input_text}\n\nClassification:"
 
     if model in ["gemma2", "phi3", "llama3", "mistral", "llama3.1", "mistral-nemo", "mertergun/phi3_finetuned", "gemma2", "qwen2"]:
@@ -75,9 +81,11 @@ async def classify_document(input_text: str, model: str):
 @app.post("/classify")
 async def classify_document_api(input_text: InputText):
     try:
-        result = await classify_document(input_text.text, input_text.model)
-        if result not in ["top secret", "secret", "confidential", "restricted", "unclassified"]:
+        result = await classify_document(input_text.text, input_text.model, input_text.lang)
+        print(result)
+        if result not in ["top secret", "secret", "confidential", "restricted", "unclassified"] and result not in ["çok gizli", "gizli", "hizmete özel", "kısıtlı", "sınıflandırılmamış"]:
             result = "unclassified"  # Default to unclassified if the model output is unexpected
+            print("Defaulting to unclassified")
         return {"classification": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

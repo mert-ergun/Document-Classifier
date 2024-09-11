@@ -106,8 +106,9 @@ def get_installed_models():
         return []
     
 def classify_document(text, model):
+    lang = st.session_state.lang_code
     try:
-        response = requests.post(f"{API_URL}/classify", json={"text": text, "model": model})
+        response = requests.post(f"{API_URL}/classify", json={"text": text, "model": model, "lang": lang})
         response.raise_for_status()
         return response.json()["classification"]
     except requests.RequestException as e:
@@ -287,15 +288,15 @@ else:
                 
                 classification = results[0]['Classification']
                 color = "#000000" 
-                if classification.lower() == "top secret":
+                if classification.lower() == "top secret" or classification.lower() == "çok gizli":
                     color = "#FF0000"  
-                elif classification.lower() == "secret":
+                elif classification.lower() == "secret" or classification.lower() == "gizli":
                     color = "#FFA500"  
-                elif classification.lower() == "confidential":
+                elif classification.lower() == "confidential" or classification.lower() == "hizmete özel":
                     color = "#800080" 
-                elif classification.lower() == "restricted":
+                elif classification.lower() == "restricted" or classification.lower() == "kısıtlı":
                     color = "#0000FF" 
-                elif classification.lower() == "unclassified":
+                elif classification.lower() == "unclassified" or classification.lower() == "sınıflandırılmamış":
                     color = "#008000"  
                 
                 st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
