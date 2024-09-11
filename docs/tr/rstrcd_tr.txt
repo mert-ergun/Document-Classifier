@@ -1,0 +1,39 @@
+İç Not: Proje Güncellemesi - Müşteri Hizmetleri İyileştirme Girişimi
+
+Kime: Müşteri Hizmetleri Ekip Liderleri
+Kimden: Sarah Johnson, Müşteri Deneyimi Başkanı
+Tarih 18 Eylül 2024
+
+Konu: CS Geliştirme Girişimine İlişkin Üç Aylık İlerleme Raporu
+
+Sevgili Ekip Liderleri,
+
+Bu bilgi notu, devam etmekte olan Müşteri Hizmetleri Geliştirme Girişimimiz hakkında bir güncelleme sunmaktadır. Lütfen ilgili bilgileri ekip üyelerinizle uygun şekilde paylaşın.
+
+1. Çağrı Merkezi Yazılım Yükseltmesi:
+   - Yeni yazılım kurulumu: %85 tamamlandı
+   - Beklenen tamamlanma tarihi: 5 Ekim 2024
+   - Temel özellikler: Yapay zeka destekli çağrı yönlendirme, gerçek zamanlı duyarlılık analizi
+
+2. Eğitim Programı:
+   - Personelin %68'i yeni müşteri etkileşim modülünü tamamladı
+   - Geri bildirim çoğunlukla olumlu olmuştur (4,2/5 ortalama derecelendirme)
+   - İyileştirme alanları: eskalasyonları ele alma, çok kanallı destek
+
+3. Müşteri Memnuniyeti Ölçütleri:
+   - Genel CSAT puanı: 8,2/10 (geçen çeyrekteki 7,8'den artış)
+   - İlk Çağrı Çözüm oranı: 72 (geçen çeyreğe göre %5 artış)
+   - Ortalama İşlem Süresi: 45 saniye kısaldı
+
+4. Sonraki Adımlar:
+   - Yeni kalite güvence kılavuzlarının 30 Eylül'e kadar yayınlanması
+   - Belirli müşterilerle yeni canlı sohbet özelliğinin beta testine başlanması
+   - Gelişmiş çatışma çözme teknikleri için ekip lideri çalıştayı planlayın
+
+Bu notta bahsedilen belirli ölçümlerin ve gelecek özelliklerin, önümüzdeki çeyrekte yapacağımız kamuoyu duyurusuna kadar şirket dışında paylaşılmaması gerektiğini lütfen unutmayın.
+
+Herhangi bir sorunuz veya endişeniz varsa, lütfen bize ulaşmaktan çekinmeyin.
+
+Saygılarımla,
+Sarah Johnson
+Müşteri Deneyimi Başkanı
