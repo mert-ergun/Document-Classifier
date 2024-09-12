@@ -52,7 +52,18 @@ translations = {
         'instructions3': "3. Supported file types: TXT, PDF, DOCX, DOC, PPTX, XLSX, CSV, PSV",
         'instructions4': "4. The system will automatically process and classify each document.",
         'instructions5': "5. View the results in the table and pie chart.",
-        'instructions6': "6. Download the results as a CSV file if needed."
+        'instructions6': "6. Download the results as a CSV file if needed.",
+
+        'edit_classification': "Edit Classification",
+        'download_train_dataset': "Download Train Dataset",
+        'generating_dataset': "Generating training dataset...",
+
+        'ts': "top secret",
+        's': "secret",
+        'c': "confidential",
+        'r': "restricted",
+        'u': "unclassified",
+
     },
     'tr': {
         'title': "Belge Sınıflandırma Sistemi",
@@ -91,7 +102,17 @@ translations = {
         'instructions3': "3. Desteklenen dosya türleri: TXT, PDF, DOCX, DOC, PPTX, XLSX, CSV, PSV",
         'instructions4': "4. Sistem otomatik olarak her belgeyi işleyecek ve sınıflandıracak.",
         'instructions5': "5. Sonuçları tablo ve pasta grafiği ile görüntüleyin.",
-        'instructions6': "6. Sonuçları CSV dosyası olarak indirin."
+        'instructions6': "6. Sonuçları CSV dosyası olarak indirin.",
+
+        'edit_classification': "Sınıflandırmayı Düzenle",
+        'download_train_dataset': "Eğitim Veri Setini İndir",
+        'generating_dataset': "Eğitim veri seti oluşturuluyor...",
+
+        'ts': "çok gizli",
+        's': "gizli",
+        'c': "hizmete özel",
+        'r': "kısıtlı",
+        'u': "sınıflandırılmamış",
     }
 }
 
@@ -298,7 +319,7 @@ if option == t("scan_directory"):
 else:
     uploaded_files = st.file_uploader(t("upload_document"), accept_multiple_files=True, type=['txt', 'pdf', 'docx', 'doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv'])
 
-    if uploaded_files:
+    if st.button(t("upload_files")):
         results = []
         for file in uploaded_files:
             with st.spinner(f'Processing {file.name}...'):
@@ -317,15 +338,15 @@ else:
                 
                 classification = results[0]['Classification']
                 color = "#000000" 
-                if classification.lower() == "top secret" or classification.lower() == "çok gizli":
+                if classification.lower() == t("ts"):
                     color = "#FF0000"  
-                elif classification.lower() == "secret" or classification.lower() == "gizli":
+                elif classification.lower() == t("s"):
                     color = "#FFA500"  
-                elif classification.lower() == "confidential" or classification.lower() == "hizmete özel":
+                elif classification.lower() == t("c"):
                     color = "#800080" 
-                elif classification.lower() == "restricted" or classification.lower() == "kısıtlı":
+                elif classification.lower() == t("r"):
                     color = "#0000FF" 
-                elif classification.lower() == "unclassified" or classification.lower() == "sınıflandırılmamış":
+                elif classification.lower() == t("u"):
                     color = "#008000"  
                 else: # Means error
                     color = "#000000"
