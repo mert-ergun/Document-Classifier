@@ -57,6 +57,7 @@ translations = {
         'edit_classification': "Edit Classification",
         'download_train_dataset': "Download Train Dataset",
         'generating_dataset': "Generating training dataset...",
+        'generate_dataset': "Generate Dataset",
 
         'ts': "top secret",
         's': "secret",
@@ -107,6 +108,7 @@ translations = {
         'edit_classification': "Sınıflandırmayı Düzenle",
         'download_train_dataset': "Eğitim Veri Setini İndir",
         'generating_dataset': "Eğitim veri seti oluşturuluyor...",
+        'generate_dataset': "Veri Seti Oluştur",
 
         'ts': "çok gizli",
         's': "gizli",
@@ -225,44 +227,35 @@ def extract_text_from_csv(file_content, delimiter=','):
     
 def scan_directory(directory, model):
     results = []
+    documents = []
     for root, _, files in os.walk(directory):
         for file in files:
             if file.lower().endswith(('.txt', '.pdf', '.docx', '.doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv')):
                 file_path = os.path.join(root, file)
                 text = extract_text_from_document(file_path)
+                documents.append((file, text))
                 if text:
                     classification = classify_document(text, model)
                     results.append({"Filename": file, "Classification": classification})
-    return results
+    return results, documents
 
 
-def create_editable_dataframe(df):
-    if 'edited_df' not in st.session_state:
-        st.session_state.edited_df = df.copy()
-
-    for i, row in st.session_state.edited_df.iterrows():
-        classification = st.selectbox(
-            f"{t('edit_classification')} - {row['Filename']}",
-            [t("ts"), t("s"), t("c"), t("r"), t("u")],
-            index=[t("ts"), t("s"), t("c"), t("r"), t("u")].index(row['Classification']),
-            key=f"classification_{i}",
-            on_change=update_classification,
-            args=(i,)
-        )
-    return st.session_state.edited_df
-
-
-def update_classification(i):
-    st.session_state.edited_df.at[i, 'Classification'] = st.session_state[f"classification_{i}"]
-
-
-def generate_training_dataset(results, uploaded_files):
+def generate_training_dataset(results, uploaded_files, scan=False):
     training_data = []
-    for result, file in zip(results, uploaded_files):
+
+    if scan:
+        for result, (file, text) in zip(results["Classification"], uploaded_files):
+            training_data.append({
+                "Content": text,
+                "Classification": result
+            })
+        return pd.DataFrame(training_data)
+
+    for result, file in zip(results["Classification"], uploaded_files):
         text = extract_text_from_document(file)
         training_data.append({
             "Content": text,
-            "Classification": result["Classification"]
+            "Classification": result
         })
     return pd.DataFrame(training_data)
 
@@ -270,6 +263,18 @@ def generate_training_dataset(results, uploaded_files):
 st.set_page_config(page_title="Document Classification System", layout="wide")
 lang = st.selectbox("Select Language / Dil Seçin", ["English", "Türkçe"], index=0, key="lang")
 st.session_state.lang_code = 'en' if lang == "English" else 'tr'
+
+if "showresults" not in st.session_state:
+    st.session_state.showresults = False
+
+if "results" not in st.session_state:
+    st.session_state.results = []
+
+if "showscan" not in st.session_state:
+    st.session_state.showscan = False
+
+if "documents" not in st.session_state:
+    st.session_state.documents = []
 
 st.title(t("title"))
 
@@ -318,100 +323,134 @@ if model not in installed_models and model in local_models:
                 else:
                     st.error("Failed to pull the selected model.")
 
-# Use a form for file upload and classification
-with st.form(key='upload_form'):
-    option = st.radio(t("option_radio"), [t("upload_files"), t("scan_directory")])
-    
-    if option == t("scan_directory"):
-        directory = st.text_input(t("directory_path"), value=".")
-    else:
-        uploaded_files = st.file_uploader(t("upload_document"), accept_multiple_files=True, type=['txt', 'pdf', 'docx', 'doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv'])
-    
-    submit_button = st.form_submit_button(t("upload_files") if option == t("upload_files") else t("scan_directory"))
+# Set a radio button to select the select upload files or scan a directory
+option = st.radio(t("option_radio"), [t("upload_files"), t("scan_directory")])
 
-if submit_button:
-    if option == t("scan_directory"):
-        with st.spinner(f"{t('scanning_directory')} {directory}..."):
-            results = scan_directory(directory, model)
-    else:
-        results = []
-        for file in uploaded_files:
-            with st.spinner(f'Processing {file.name}...'):
-                text = extract_text_from_document(file)
-                if text:
-                    classification = classify_document(text, model)
-                    results.append({"Filename": file.name, "Classification": classification})
-
-    if results:
-        results_df = pd.DataFrame(results)
+if option == t("scan_directory"):
+    st.write(t("please_select"))
+    directory = st.text_input(t("directory_path"), value=".")
+    if st.button(t("scan_directory"), key="scan_directory") or st.session_state.showscan:
+        if not st.session_state.showscan or st.session_state.scan_directory:
+            st.session_state.showscan = True
+            with st.spinner(f"{t('scanning_directory')} {directory}..."):
+                st.session_state.results, st.session_state.documents = scan_directory(directory, model)
         
-        if len(results) == 1:
-            st.success(t("completed"))
-            st.markdown(f"<h2 style='text-align: center; color: #1E90FF;'>{t('classification_results')}</h2>", unsafe_allow_html=True)
-            st.markdown(f"<h3 style='text-align: center;'>{t('file')} {results[0]['Filename']}</h3>", unsafe_allow_html=True)
-            
-            classification = results[0]['Classification']
-            color = "#000000"
-            if classification.lower() == t("ts"):
-                color = "#FF0000"
-            elif classification.lower() == t("s"):
-                color = "#FFA500"
-            elif classification.lower() == t("c"):
-                color = "#800080"
-            elif classification.lower() == t("r"):
-                color = "#0000FF"
-            elif classification.lower() == t("u"):
-                color = "#008000"
-            else:  # Means error
-                color = "#000000"
-            
-            st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
-
-        else:
+        if st.session_state.results:
+            results_df = pd.DataFrame(st.session_state.results)
             st.subheader(t("classification_results"))
-            edited_df = create_editable_dataframe(results_df)
-            st.dataframe(edited_df, use_container_width=True)
+            # Make the dataframe editable, so user change the classification if needed using selectbox in the Classification column
+            edited_df = st.data_editor(results_df, use_container_width=True, column_config={
+                "Classification": st.column_config.SelectboxColumn(
+                    "Classification",
+                    width="medium",
+                    options=[t("ts"), t("s"), t("c"), t("r"), t("u")],
+                    required=True,
+                )
+            }, num_rows="fixed")
             
             # Visualization
             fig = px.pie(edited_df, names="Classification", title=t('distribution'))
             st.plotly_chart(fig)
         
-        # Download results
-        csv = edited_df.to_csv(index=False)
-        st.download_button(
-            label=t("download_results"),
-            data=csv,
-            file_name="classification_results.csv",
-            mime="text/csv",
-        )
+            # Download results
+            csv = results_df.to_csv(index=False)
+            st.download_button(
+                label=t("download_results"),
+                data=csv,
+                file_name="classification_results.csv",
+                mime="text/csv",
+            )
 
-        # Download training dataset
-        if st.button(t("download_train_dataset")):
-            with st.spinner(t("generating_dataset")):
-                if option == t("upload_files"):
-                    training_df = generate_training_dataset(edited_df.to_dict('records'), uploaded_files)
-                else:
-                    # For directory scanning, we need to read the files again
-                    training_data = []
-                    for result in edited_df.to_dict('records'):
-                        file_path = os.path.join(directory, result['Filename'])
-                        text = extract_text_from_document(file_path)
-                        training_data.append({
-                            "Content": text,
-                            "Classification": result["Classification"]
-                        })
-                    training_df = pd.DataFrame(training_data)
+            if st.button(t("generate_dataset")):
+                with st.spinner(t("generating_dataset")):
+                    training_data = generate_training_dataset(edited_df, st.session_state.documents, scan=True)
+                    csv = training_data.to_csv(index=False)
+                    st.download_button(
+                        label="Download Train Dataset",
+                        data=csv,
+                        file_name="train_dataset.csv",
+                        mime="text/csv",
+                    )
+        else:
+            st.warning(t("no_valid_documents"))
+
+else:
+    uploaded_files = st.file_uploader(t("upload_document"), accept_multiple_files=True, type=['txt', 'pdf', 'docx', 'doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv'])
+
+    if st.button(t("upload_files"), key="upload") or st.session_state.showresults:
+        if not st.session_state.showresults or st.session_state.upload:
+            st.session_state.showresults = True
+            st.session_state.results = []
+            for file in uploaded_files:
+                with st.spinner(f'Processing {file.name}...'):
+                    text = extract_text_from_document(file)
+                    if text:
+                        classification = classify_document(text, model)
+                        st.session_state.results.append({"Filename": file.name, "Classification": classification})
+        
+        if st.session_state.results:
+            results_df = pd.DataFrame(st.session_state.results)
+            
+            if len(st.session_state.results) == 1:
+                st.success(t(f"completed"))
+                st.markdown(f"<h2 style='text-align: center; color: #1E90FF;'>Classification Result</h2>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='text-align: center;'>File: {st.session_state.results[0]['Filename']}</h3>", unsafe_allow_html=True)
                 
-                training_csv = training_df.to_csv(index=False)
+                classification = st.session_state.results[0]['Classification']
+                color = "#000000" 
+                if classification.lower() == t("ts"):
+                    color = "#FF0000"  
+                elif classification.lower() == t("s"):
+                    color = "#FFA500"  
+                elif classification.lower() == t("c"):
+                    color = "#800080" 
+                elif classification.lower() == t("r"):
+                    color = "#0000FF" 
+                elif classification.lower() == t("u"):
+                    color = "#008000"  
+                else: # Means error
+                    color = "#000000"
+                
+                st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
+
+            else:
+                st.subheader(t("classification_results"))
+                # Make the dataframe editable, so user change the classification if needed using selectbox in the Classification column
+                edited_df = st.data_editor(results_df, use_container_width=True, column_config={
+                    "Classification": st.column_config.SelectboxColumn(
+                        "Classification",
+                        width="medium",
+                        options=[t("ts"), t("s"), t("c"), t("r"), t("u")],
+                        required=True,
+                    )
+                }, num_rows="fixed")
+                
+                # Visualization
+                fig = px.pie(edited_df, names="Classification", title=t('distribution'))
+                st.plotly_chart(fig)
+            
+                # Download results
+                csv = results_df.to_csv(index=False)
                 st.download_button(
-                    label=t("download_train_dataset"),
-                    data=training_csv,
-                    file_name="training_dataset.csv",
+                    label=t("download_results"),
+                    data=csv,
+                    file_name="classification_results.csv",
                     mime="text/csv",
                 )
-    else:
-        st.warning(t("no_valid_documents"))
 
+                if st.button(t("generate_dataset")):
+                    with st.spinner(t("generating_dataset")):
+                        training_data = generate_training_dataset(edited_df, uploaded_files)
+                        csv = training_data.to_csv(index=False)
+                        st.download_button(
+                            label="Download Train Dataset",
+                            data=csv,
+                            file_name="train_dataset.csv",
+                            mime="text/csv",
+                        )
+
+        else:
+            st.warning(t("no_valid_documents"))
 
 st.sidebar.title(t("about"))
 st.sidebar.info(
