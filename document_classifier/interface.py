@@ -235,6 +235,30 @@ def scan_directory(directory, model):
                     results.append({"Filename": file, "Classification": classification})
     return results
 
+
+def create_editable_dataframe(df):
+    for i, row in df.iterrows():
+        classification = st.selectbox(
+            f"{t('edit_classification')} - {row['Filename']}",
+            [t("ts"), t("s"), t("c"), t("r"), t("u")],
+            index=[t("ts"), t("s"), t("c"), t("r"), t("u")].index(row['Classification']),
+            key=f"classification_{i}"
+        )
+        df.at[i, 'Classification'] = classification
+    return df
+
+
+def generate_training_dataset(results, uploaded_files):
+    training_data = []
+    for result, file in zip(results, uploaded_files):
+        text = extract_text_from_document(file)
+        training_data.append({
+            "Content": text,
+            "Classification": result["Classification"]
+        })
+    return pd.DataFrame(training_data)
+
+
 st.set_page_config(page_title="Document Classification System", layout="wide")
 lang = st.selectbox("Select Language / Dil Seçin", ["English", "Türkçe"], index=0, key="lang")
 st.session_state.lang_code = 'en' if lang == "English" else 'tr'
@@ -355,20 +379,33 @@ else:
 
             else:
                 st.subheader(t("classification_results"))
-                st.dataframe(results_df, use_container_width=True)
+                edited_df = create_editable_dataframe(results_df)
+                st.dataframe(edited_df, use_container_width=True)
                 
                 # Visualization
-                fig = px.pie(results_df, names="Classification", title=t('distribution'))
+                fig = px.pie(edited_df, names="Classification", title=t('distribution'))
                 st.plotly_chart(fig)
             
             # Download results
-            csv = results_df.to_csv(index=False)
+            csv = edited_df.to_csv(index=False)
             st.download_button(
                 label=t("download_results"),
                 data=csv,
                 file_name="classification_results.csv",
                 mime="text/csv",
             )
+
+            # Download training dataset
+            if st.button(t("download_train_dataset")):
+                with st.spinner(t("generating_dataset")):
+                    training_df = generate_training_dataset(edited_df.to_dict('records'), uploaded_files)
+                    training_csv = training_df.to_csv(index=False)
+                    st.download_button(
+                        label=t("download_train_dataset"),
+                        data=training_csv,
+                        file_name="training_dataset.csv",
+                        mime="text/csv",
+                    )
         else:
             st.warning(t("no_valid_documents"))
 
