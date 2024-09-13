@@ -427,6 +427,8 @@ else:
                 
                 st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
 
+                text = extract_text_from_document(uploaded_files[0])
+
                 if st.button(t("explain")):
                     explanation = explain_classification(text, model, classification)
                     st.write(explanation)
