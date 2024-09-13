@@ -427,6 +427,10 @@ else:
                 
                 st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
 
+                if st.button(t("explain")):
+                    explanation = explain_classification(text, model, classification)
+                    st.write(explanation)
+
             else:
                 st.subheader(t("classification_results"))
                 # Make the dataframe editable, so user change the classification if needed using selectbox in the Classification column
