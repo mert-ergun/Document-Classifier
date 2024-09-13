@@ -59,6 +59,8 @@ translations = {
         'generating_dataset': "Generating training dataset...",
         'generate_dataset': "Generate Dataset",
 
+        'explain': "Explain Classification",
+
         'ts': "top secret",
         's': "secret",
         'c': "confidential",
@@ -109,6 +111,8 @@ translations = {
         'download_train_dataset': "Eğitim Veri Setini İndir",
         'generating_dataset': "Eğitim veri seti oluşturuluyor...",
         'generate_dataset': "Veri Seti Oluştur",
+
+        'explain': "Sınıflandırmayı Açıkla",
 
         'ts': "çok gizli",
         's': "gizli",
