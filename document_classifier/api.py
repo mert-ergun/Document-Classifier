@@ -26,10 +26,19 @@ with open("system_prompt_en.txt", "r") as f:
 with open("system_prompt_tr.txt", "r") as f:
     system_prompt_tr = f.read()
 
+with open("explain_prompt_en.txt", "r") as f:
+    explain_prompt_en = f.read()
+
+with open("explain_prompt_tr.txt", "r") as f:
+    explain_prompt_tr = f.read()
+
 class InputText(BaseModel):
     text: str
     model: str = "gemma2"
     lang: str = "en"
+
+class ExplainInputText(InputText):
+    classification: str
 
 class PullModel(BaseModel):
     model: str
@@ -77,6 +86,42 @@ async def classify_document(input_text: str, model: str, lang: str):
 
     else:
         raise HTTPException(status_code=400, detail="Unsupported model")
+    
+
+async def explain_classification(input_text: str, model: str, classification: str,lang: str):
+    explain_prompt = explain_prompt_en if lang == "en" else explain_prompt_tr
+
+    prompt = f"{explain_prompt}\n\nDocument content: {input_text}\n\nClassification:{classification}\n\nExplanation:"
+
+    if model in ["gemma2", "phi3", "llama3", "mistral", "llama3.1", "mistral-nemo", "mertergun/phi3_finetuned", "gemma2", "qwen2"]:
+        async with aiohttp.ClientSession() as session:
+            _, result = await query_ollama(session, model, prompt)
+        return result
+
+    elif model in ["gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "gpt-4-turbo", "gpt-4o", "gpt-4o-mini"]:
+        response = client.chat.completions.create(model=model,
+        messages=[
+            {"role": "system", "content": explain_prompt},
+            {"role": "user", "content": prompt}
+        ])
+        return response.choices[0].message.content.strip().lower()
+
+    elif model in ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"]:
+        model = genai.GenerativeModel(model)
+        response = model.generate_content(
+            prompt,
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE
+            }
+        )
+        return response.text.strip().lower()
+
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported model")
+
 
 @app.post("/classify")
 async def classify_document_api(input_text: InputText):
@@ -90,6 +135,15 @@ async def classify_document_api(input_text: InputText):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
+
+@app.post("/explain")
+async def explain_classification_api(input_text: InputText):
+    try:
+        result = await explain_classification(input_text.text, input_text.model, input_text.classification, input_text.lang)
+        return {"explanation": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/pull_model")
 async def pull_model(model: PullModel):
