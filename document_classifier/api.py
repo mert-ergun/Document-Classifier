@@ -9,6 +9,7 @@ from google.generativeai.types import HarmCategory, HarmBlockThreshold
 import httpx
 import asyncio
 import aiohttp
+import re
 
 app = FastAPI()
 load_dotenv()
@@ -53,6 +54,13 @@ async def query_ollama(session, model, prompt):
         result = await response.json()
         return model, result.get("response").strip().lower()
 
+def capitalize_sentences(text):
+    text = text.capitalize()
+    
+    pattern = r'([.!?]\s*)([a-z])'
+    
+    return re.sub(pattern, lambda m: m.group(1) + m.group(2).upper(), text)
+
 async def classify_document(input_text: str, model: str, lang: str):
     system_prompt = system_prompt_en if lang == "en" else system_prompt_tr
 
@@ -93,7 +101,7 @@ async def explain_classification(input_text: str, model: str, classification: st
 
     prompt = f"{explain_prompt}\n\nDocument content: {input_text}\n\nClassification:{classification}\n\nExplanation:"
 
-    if model in ["gemma2", "phi3", "llama3", "mistral", "llama3.1", "mistral-nemo", "mertergun/phi3_finetuned", "gemma2", "qwen2"]:
+    if model in ["gemma2", "phi3", "llama3", "mistral", "llama3.1", "mistral-nemo", "mertergun/phi3_finetuned", "qwen2"]:
         async with aiohttp.ClientSession() as session:
             _, result = await query_ollama(session, model, prompt)
         return result
@@ -137,9 +145,10 @@ async def classify_document_api(input_text: InputText):
     
 
 @app.post("/explain")
-async def explain_classification_api(input_text: InputText):
+async def explain_classification_api(input_text: ExplainInputText):
     try:
         result = await explain_classification(input_text.text, input_text.model, input_text.classification, input_text.lang)
+        result = capitalize_sentences(result)
         return {"explanation": result}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
