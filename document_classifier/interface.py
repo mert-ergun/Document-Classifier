@@ -40,6 +40,7 @@ def create_classified_zip(results, documents):
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 
+                # TODO: Fix PDF, DOCX, PPTX, XLSX, CSV, PSV file types
                 file_path = os.path.join(folder_path, filename)
                 with open(file_path, 'wb') as f:
                     if isinstance(document, tuple):
