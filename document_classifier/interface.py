@@ -309,8 +309,8 @@ else:
             
             if len(st.session_state.results) == 1:
                 st.success(t(f"completed"))
-                st.markdown(f"<h2 style='text-align: center; color: #1E90FF;'>Classification Result</h2>", unsafe_allow_html=True)
-                st.markdown(f"<h3 style='text-align: center;'>File: {st.session_state.results[0]['Filename']}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h2 style='text-align: center; color: #1E90FF;'>{t('classification_results')}</h2>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='text-align: center;'>{t('file')}: {st.session_state.results[0]['Filename']}</h3>", unsafe_allow_html=True)
                 
                 classification = st.session_state.results[0]['Classification']
                 color = "#000000" 
@@ -327,13 +327,14 @@ else:
                 else: # Means error
                     color = "#000000"
                 
-                st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification}</h1>", unsafe_allow_html=True)
+                st.markdown(f"<h1 style='text-align: center; color: {color};'>{classification.upper()}</h1>", unsafe_allow_html=True)
 
-                text = extract_text_from_document(uploaded_files[0])
+                if uploaded_files:
+                    text = extract_text_from_document(uploaded_files[0])
 
-                if st.button(t("explain")):
-                    explanation = explain_classification(text, model, classification)
-                    st.write(explanation)
+                    if st.button(t("explain")):
+                        explanation = explain_classification(text, model, classification)
+                        st.write(explanation)
 
             else:
                 st.subheader(t("classification_results"))
