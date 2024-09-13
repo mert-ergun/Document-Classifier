@@ -42,6 +42,9 @@
     "generating_dataset": "Eğitim veri seti oluşturuluyor...",
     "generate_dataset": "Veri Seti Oluştur",
 
+    "download_classified_zip": "Sınıflandırılmış Zip'i İndir",
+    "download_classified_documents": "Sınıflandırılmış Belgeleri İndir",
+
     "explain": "Sınıflandırmayı Açıkla",
 
     "ts": "çok gizli",

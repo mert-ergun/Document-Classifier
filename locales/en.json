@@ -42,6 +42,9 @@
     "generating_dataset": "Generating training dataset...",
     "generate_dataset": "Generate Dataset",
 
+    "download_classified_zip": "Download Classified Zip",
+    "download_classified_documents": "Download Classified Documents",
+
     "explain": "Explain Classification",
 
     "ts": "top secret",
