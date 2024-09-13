@@ -14,112 +14,14 @@ import csv
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
+def load_translations(lang_code):
+    file_path = os.path.join('locales', f'{lang_code}.json')
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return json.load(file)
+    
 translations = {
-    'en': {
-        'title': "Document Classification System",
-        'model_select': "Select Classification Model",
-        'pull_model': "Pull Selected Model",
-        'pulling_model': "Pulling model...",
-        'option_radio': "Choose an option",
-        'upload_files': "Upload Files",
-        'scan_directory': "Scan Directory",
-        'please_select': "Please select a directory to scan for document classification.",
-        'directory_path': "Directory path",
-        'scanning_directory': "Scanning directory",
-        'failed_to_fetch': "Failed to fetch installed models.",
-        'error_classifying': "An error occurred while classifying the document: {str(e)}",
-        'error_reading_pdf': "Error reading PDF: {str(e)}",
-        'error_reading_docx': "Error reading DOCX: {str(e)}",
-        'unsupported_file': "Unsupported file type: {file_extension}",
-        'classification_results': "Classification Results",
-        'classification': "Classification",
-        'distribution': "Distribution of Document Classifications",
-        'download_results': "Download results as CSV",
-        'no_valid_documents': "No valid documents were processed. Please check your files and try again.",
-        'upload_document': "Upload document(s) for classification",
-        'completed': "File Classification Complete!",
-        'file': "File:",
-
-        'about': "About",
-        'about1': 'This document classification system uses advanced Language Model technology',
-        'about2': 'to categorize your documents into five security levels: Top Secret, Secret,',
-        'about3': 'Confidential, Restricted, and Unclassified. Simply upload your documents and',
-        'about4': 'receive instant classification results.',
-
-        'instructions': "Instructions",
-        'instructions1': "1. Select a classification model from the dropdown menu.",
-        'instructions2': "2. Upload one or more documents using the file uploader.",
-        'instructions3': "3. Supported file types: TXT, PDF, DOCX, DOC, PPTX, XLSX, CSV, PSV",
-        'instructions4': "4. The system will automatically process and classify each document.",
-        'instructions5': "5. View the results in the table and pie chart.",
-        'instructions6': "6. Download the results as a CSV file if needed.",
-
-        'edit_classification': "Edit Classification",
-        'download_train_dataset': "Download Train Dataset",
-        'generating_dataset': "Generating training dataset...",
-        'generate_dataset': "Generate Dataset",
-
-        'explain': "Explain Classification",
-
-        'ts': "top secret",
-        's': "secret",
-        'c': "confidential",
-        'r': "restricted",
-        'u': "unclassified",
-
-    },
-    'tr': {
-        'title': "Belge Sınıflandırma Sistemi",
-        'model_select': "Sınıflandırma Modelini Seçin",
-        'pull_model': "Seçilen Modeli Çek",
-        'pulling_model': "Model çekiliyor... ",
-        'option_radio': "Bir seçenek belirleyin",
-        'upload_files': "Dosya Yükle",
-        'scan_directory': "Dizini Tara",
-        'please_select': "Belge sınıflandırması için taranacak bir dizin seçin.",
-        'directory_path': "Dizin yolu",
-        'scanning_directory': "Dizin taranıyor",
-        'failed_to_fetch': "Yüklü modeller alınamadı.",
-        'error_classifying': "Belge sınıflandırılırken bir hata oluştu: {str(e)}",
-        'error_reading_pdf': "PDF okunurken hata oluştu: {str(e)}",
-        'error_reading_docx': "DOCX okunurken hata oluştu: {str(e)}",
-        'unsupported_file': "Desteklenmeyen dosya türü: {file_extension}",
-        'classification_results': "Sınıflandırma Sonuçları",
-        'classification': "Sınıflandırma",
-        'distribution': "Belge Sınıflandırmalarının Dağılımı",
-        'download_results': "Sonuçları CSV olarak indir",
-        'no_valid_documents': "Geçerli belge işlenmedi. Lütfen dosyalarınızı kontrol edin ve tekrar deneyin.",
-        'upload_document': "Sınıflandırma için belge(ler) yükleyin",
-        'completed': "Dosya Sınıflandırma Tamamlandı!",
-        'file': "Dosya:",
-
-        'about': "Hakkında",
-        'about1': 'Bu belge sınıflandırma sistemi, belgelerinizi beş güvenlik seviyesine',
-        'about2': 'sınıflandırmak için gelişmiş Dil Modeli teknolojisini kullanır: Çok Gizli, Gizli,',
-        'about3': 'Hizmete Özel, Sınırlı ve Sınıflandırılmamış. Belgelerinizi yükleyin ve',
-        'about4': 'anında sınıflandırma sonuçları alın.',
-
-        'instructions': "Kullanım Talimatları",
-        'instructions1': "1. Açılır menüden bir sınıflandırma modeli seçin.",
-        'instructions2': "2. Dosya yükleyin veya dizin taraması yapın.",
-        'instructions3': "3. Desteklenen dosya türleri: TXT, PDF, DOCX, DOC, PPTX, XLSX, CSV, PSV",
-        'instructions4': "4. Sistem otomatik olarak her belgeyi işleyecek ve sınıflandıracak.",
-        'instructions5': "5. Sonuçları tablo ve pasta grafiği ile görüntüleyin.",
-        'instructions6': "6. Sonuçları CSV dosyası olarak indirin.",
-
-        'edit_classification': "Sınıflandırmayı Düzenle",
-        'download_train_dataset': "Eğitim Veri Setini İndir",
-        'generating_dataset': "Eğitim veri seti oluşturuluyor...",
-        'generate_dataset': "Veri Seti Oluştur",
-
-        'explain': "Sınıflandırmayı Açıkla",
-
-        'ts': "çok gizli",
-        's': "gizli",
-        'c': "hizmete özel",
-        'r': "kısıtlı",
-        'u': "sınıflandırılmamış",
-    }
+    'en': load_translations('en'),
+    'tr': load_translations('tr')
 }
 
 def t(key):
