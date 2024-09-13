@@ -140,6 +140,16 @@ def classify_document(text, model):
     except requests.RequestException as e:
         st.error(t("error_classifying"))
         return "Classification Error"
+    
+def explain_classification(text, model, classification):
+    lang = st.session_state.lang_code
+    try:
+        response = requests.post(f"{API_URL}/explain", json={"text": text, "model": model, "classification": classification, "lang": lang})
+        response.raise_for_status()
+        return response.json()["explanation"]
+    except requests.RequestException as e:
+        st.error(f"Error explaining classification: {str(e)}")
+        return "Explanation Error"
 
 def extract_text_from_document(file):
     if isinstance(file, str):
