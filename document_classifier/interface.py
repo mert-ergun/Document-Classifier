@@ -11,6 +11,8 @@ import os
 from openpyxl import load_workbook
 from pptx import Presentation
 import csv
+import zipfile
+import tempfile
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
@@ -27,6 +29,28 @@ translations = {
 def t(key):
     return translations[st.session_state.lang_code].get(key, key)
 
+def create_classified_zip(results, documents):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with zipfile.ZipFile(os.path.join(temp_dir, 'classifications.zip'), 'w') as zipf:
+            for result, document in zip(results, documents):
+                classification = result['Classification'].lower()
+                filename = result['Filename']
+                
+                folder_path = os.path.join(temp_dir, classification)
+                if not os.path.exists(folder_path):
+                    os.makedirs(folder_path)
+                
+                file_path = os.path.join(folder_path, filename)
+                with open(file_path, 'wb') as f:
+                    if isinstance(document, tuple):
+                        f.write(document[1].encode('utf-8'))
+                    else:
+                        f.write(document.getvalue())
+                
+                zipf.write(file_path, os.path.join(classification, filename))
+        
+        with open(os.path.join(temp_dir, 'classifications.zip'), 'rb') as f:
+            return f.read()
 
 def get_installed_models():
     response = requests.get(f"{API_URL}/tags")
@@ -287,6 +311,15 @@ if option == t("scan_directory"):
                         file_name="train_dataset.csv",
                         mime="text/csv",
                     )
+
+            if st.button(t("download_classified_zip")):
+                zip_file = create_classified_zip(st.session_state.results, st.session_state.documents)
+                st.download_button(
+                    label=t("download_classified_documents"),
+                    data=zip_file,
+                    file_name="classifications.zip",
+                    mime="application/zip",
+                )
         else:
             st.warning(t("no_valid_documents"))
 
@@ -371,6 +404,15 @@ else:
                             file_name="train_dataset.csv",
                             mime="text/csv",
                         )
+
+                if st.button(t("download_classified_zip")):
+                    zip_file = create_classified_zip(st.session_state.results, uploaded_files)
+                    st.download_button(
+                        label=t("download_classified_documents"),
+                        data=zip_file,
+                        file_name="classifications.zip",
+                        mime="application/zip",
+                    )
 
         else:
             st.warning(t("no_valid_documents"))
