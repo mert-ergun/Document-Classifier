@@ -24,6 +24,9 @@ The Document Classification System is an advanced tool designed to categorize do
 - python-docx
 - OpenAI API
 - Google Generative AI
+- OpenPyxl
+- Docker
+- Poetry
 - Ollama (for local model integration)
 
 ## Installation
@@ -55,7 +58,7 @@ The Document Classification System is an advanced tool designed to categorize do
 
 1. Run the FastAPI server:
    ```
-   poetry run uvicorn document_classifier.api:app --host 0.0.0.0 --port 8000
+   poetry run uvicorn document_classifier.api.main:app --host 0.0.0.0 --port 8000
    ```
 
 2. The API will be available at `http://localhost:8000`. You can access the API documentation at `http://localhost:8000/docs`.
@@ -64,7 +67,7 @@ The Document Classification System is an advanced tool designed to categorize do
 
 1. Start the Streamlit app:
    ```
-   poetry run streamlit run document_classifier/interface.py
+   poetry run streamlit run document_classifier/interface/app.py
    ```
 
 2. Open your web browser and navigate to `http://localhost:8501` to access the user interface.
@@ -144,7 +147,7 @@ COPY . /app/
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "document_classifier/interface.py"]
+CMD ["streamlit", "run", "document_classifier/interface/app.py"]
 ```
 
 Build the Streamlit Docker image:

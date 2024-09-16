@@ -20,4 +20,4 @@ COPY . /app/
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "document_classifier/interface.py"]
+CMD ["python", "-m", "streamlit", "run", "document_classifier/interface/app.py"]
