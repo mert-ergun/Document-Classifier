@@ -13,6 +13,7 @@ from pptx import Presentation
 import csv
 import zipfile
 import tempfile
+import xlrd
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
@@ -99,8 +100,10 @@ def extract_text_from_document(file):
         return extract_text_from_docx(file_content)
     elif file_extension == '.pptx':
         return extract_text_from_pptx(file_content)
-    elif file_extension in ['.xlsx', '.xls']:
+    elif file_extension == '.xlsx':
         return extract_text_from_excel(file_content)
+    elif file_extension == '.xls':
+        return extract_text_from_xls(file_content)
     elif file_extension in ['.csv', '.psv']:
         return extract_text_from_csv(file_content, delimiter=',' if file_extension == '.csv' else '|')
     else:
@@ -151,6 +154,20 @@ def extract_text_from_excel(file_content):
         return "\n".join(text)
     except Exception as e:
         st.error(f"Error reading Excel file: {str(e)}")
+        return ""
+    
+
+def extract_text_from_xls(file_content):
+    try:
+        wb = xlrd.open_workbook(file_contents=file_content)
+        text = []
+        for sheet in wb.sheet_names():
+            ws = wb.sheet_by_name(sheet)
+            for row in range(ws.nrows):
+                text.append("\t".join(str(cell) for cell in ws.row_values(row) if cell is not None))
+        return "\n".join(text)
+    except Exception as e:
+        st.error(f"Error reading XLS file: {str(e)}")
         return ""
 
 
