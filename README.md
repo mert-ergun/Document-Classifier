@@ -1,5 +1,7 @@
 # Document Classification System
 
+![Screenshot](https://github.com/mert-ergun/Document-Classifier/blob/main/screenshot.png?raw=true)
+
 ## Overview
 
 The Document Classification System is an advanced tool designed to categorize documents into five security levels: Top Secret, Secret, Confidential, Restricted, and Unclassified. Leveraging state-of-the-art Language Model technology, this system provides instant and accurate classification for various document types.
