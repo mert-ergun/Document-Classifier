@@ -37,19 +37,20 @@ def create_classified_zip(results, documents):
                 classification = result['Classification'].lower()
                 filename = result['Filename']
                 
-                folder_path = os.path.join(temp_dir, classification)
-                if not os.path.exists(folder_path):
-                    os.makedirs(folder_path)
-                
-                # TODO: Fix PDF, DOCX, PPTX, XLSX, CSV, PSV file types
-                file_path = os.path.join(folder_path, filename)
-                with open(file_path, 'wb') as f:
-                    if isinstance(document, tuple):
-                        f.write(document[1].encode('utf-8'))
-                    else:
-                        f.write(document.getvalue())
-                
-                zipf.write(file_path, os.path.join(classification, filename))
+                folder_path = classification  # Classification folder
+
+                if isinstance(document, tuple):  # For scanned directory files
+                    file_name, file_content = document
+                    if isinstance(file_content, str):
+                        file_content = file_content.encode('utf-8')  # Convert string to bytes if necessary
+                    zipf.writestr(os.path.join(folder_path, file_name), file_content)
+                elif hasattr(document, 'read'):  # For uploaded files (file-like objects)
+                    document.seek(0)  # Ensure we're at the start of the file
+                    zipf.writestr(os.path.join(folder_path, filename), document.read())
+                else:  # For any other type of content
+                    if isinstance(document, str):
+                        document = document.encode('utf-8')  # Convert string to bytes if necessary
+                    zipf.writestr(os.path.join(folder_path, filename), document)
         
         with open(os.path.join(temp_dir, 'classifications.zip'), 'rb') as f:
             return f.read()
@@ -83,8 +84,12 @@ def explain_classification(text, model, classification):
         st.error(f"Error explaining classification: {str(e)}")
         return "Explanation Error"
 
-def extract_text_from_document(file):
-    if isinstance(file, str):
+def extract_text_from_document(file, file_extension=None):
+    if isinstance(file, bytes):
+        file_content = file
+        if not file_extension:
+            file_extension = guess_file_extension(file_content)
+    elif isinstance(file, str):
         file_extension = os.path.splitext(file)[1].lower()
         with open(file, 'rb') as f:
             file_content = f.read()
@@ -93,7 +98,7 @@ def extract_text_from_document(file):
         file_content = file.getvalue()
 
     if file_extension == '.txt':
-        return file_content.decode('utf-8')
+        return file_content.decode('utf-8', errors='ignore')
     elif file_extension == '.pdf':
         return extract_text_from_pdf(file_content)
     elif file_extension in ['.docx', '.doc']:
@@ -109,6 +114,17 @@ def extract_text_from_document(file):
     else:
         st.error(f"Unsupported file type: {file_extension}")
         return ""
+
+
+def guess_file_extension(file_content):
+    if file_content.startswith(b'%PDF'):
+        return '.pdf'
+    elif file_content.startswith(b'PK\x03\x04'):
+        return '.docx'  # or .xlsx or .pptx, further inspection needed
+    elif file_content.startswith(b'\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1'):
+        return '.doc'  # or .xls, further inspection needed
+    else:
+        return '.txt'  # Default to txt if unknown
 
 
 def extract_text_from_pdf(file_content):
@@ -189,9 +205,12 @@ def scan_directory(directory, model):
     for root, _, files in os.walk(directory):
         for file in files:
             if file.lower().endswith(('.txt', '.pdf', '.docx', '.doc', 'pptx', 'xlsx', 'xls', 'csv', 'psv')):
+                file_extension = os.path.splitext(file)[1].lower()
                 file_path = os.path.join(root, file)
-                text = extract_text_from_document(file_path)
-                documents.append((file, text))
+                with open(file_path, 'rb') as f:
+                    file_content = f.read()
+                text = extract_text_from_document(file_content, file_extension)
+                documents.append((file, file_content))
                 if text:
                     classification = classify_document(text, model)
                     results.append({"Filename": file, "Classification": classification})
