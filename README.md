@@ -6,7 +6,7 @@ The Document Classification System is an advanced tool designed to categorize do
 
 ## Features
 
-- Support for multiple document formats (TXT, PDF, DOCX, DOC)
+- Support for multiple document formats (TXT, PDF, DOCX, DOC, XLS, XLSX, CSV, PPT, PPTX, PSV)
 - Integration with various Language Models (LLMs) including local and cloud-based options
 - User-friendly web interface built with Streamlit
 - RESTful API for easy integration with other systems
