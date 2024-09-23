@@ -5,6 +5,7 @@ import yaml
 import streamlit_authenticator as stauth
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
+import time
 
 def load_yaml(file_path):
     with open(file_path, 'r') as file:
@@ -14,12 +15,14 @@ def save_yaml(file_path, data):
     with open(file_path, 'w') as file:
         yaml.dump(data, file, default_flow_style=False)
 
-def add_user_to_data(data, username, email, name, password):
+def add_user_to_data(data, username, email, name, password, role):
     data['credentials']['usernames'][username] = {
         'email': email,
         'name': name,
         'password': password,
-        'first_time_login': True
+        'role': role,
+        'first_time_login': True,
+        'last_change': time.time()
     }
     stauth.Hasher.hash_passwords(data['credentials'])
 
@@ -73,6 +76,19 @@ class UserAdminApp:
         password_label.grid(row=3, column=0, sticky=W, pady=10)
         self.password_entry = ttk.Entry(form_frame, show="*")
         self.password_entry.grid(row=3, column=1, sticky=EW, pady=10)
+
+        # Role
+        role_label = ttk.Label(form_frame, text="Role:")
+        role_label.grid(row=4, column=0, sticky=W, pady=10)
+        # Role can be user or manager, make it a dropdown
+        self.role_var = StringVar()
+        self.role_var.set("user")
+        self.role_menu = ttk.Combobox(
+            form_frame, 
+            textvariable=self.role_var, 
+            values=["user", "manager"]
+        )
+        self.role_menu.grid(row=4, column=1, sticky=EW, pady=10)
         
         # Configure grid weights
         form_frame.columnconfigure(1, weight=1)
@@ -91,9 +107,10 @@ class UserAdminApp:
         email = self.email_entry.get()
         name = self.name_entry.get()
         password = self.password_entry.get()
+        role = self.role_var.get()
 
         if username and email and name and password:
-            add_user_to_data(self.data, username, email, name, password)
+            add_user_to_data(self.data, username, email, name, password, role)
             save_yaml(self.file_path, self.data)
             messagebox.showinfo("Success", "User added successfully!")
             self.clear_entries()
