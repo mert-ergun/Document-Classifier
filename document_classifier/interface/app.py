@@ -119,7 +119,107 @@ def main():
                 if "documents" not in st.session_state:
                     st.session_state.documents = []
 
+                if "showsubmissions" not in st.session_state:
+                    st.session_state.showsubmissions = False
+
                 st.title(t("title"))
+
+                # Notify user about submission statuses
+                def check_submission_status(username):
+                    approved_dir = 'approved'
+                    disapproved_dir = 'disapproved'
+                    user_submissions = []
+
+                    # Check approved submissions
+                    if os.path.exists(approved_dir):
+                        for eval_dir in os.listdir(approved_dir):
+                            if username:
+                                if eval_dir.startswith(username):
+                                    eval_path = os.path.join(approved_dir, eval_dir)
+                                    with open(os.path.join(eval_path, 'metadata.yaml'), 'r') as meta_file:
+                                        metadata = yaml.load(meta_file, Loader=SafeLoader)
+                                        if metadata.get('notified', False) == False:
+                                            user_submissions.append({'status': 'approved', 'path': eval_path, 'metadata': metadata})
+
+                    # Check disapproved submissions
+                    if os.path.exists(disapproved_dir):
+                        for eval_dir in os.listdir(disapproved_dir):
+                            if username:
+                                if eval_dir.startswith(username):
+                                    eval_path = os.path.join(disapproved_dir, eval_dir)
+                                    with open(os.path.join(eval_path, 'metadata.yaml'), 'r') as meta_file:
+                                        metadata = yaml.load(meta_file, Loader=SafeLoader)
+                                        if metadata.get('notified', False) == False:
+                                            user_submissions.append({'status': 'rejected', 'path': eval_path, 'metadata': metadata})
+
+                    return user_submissions
+
+                def notify_user(submissions):
+                    for submission in submissions:
+                        status = submission['status']
+                        eval_path = submission['path']
+                        metadata = submission['metadata']
+
+                        if status == 'approved':
+                            st.success(f"Your submission '{os.path.basename(eval_path)}' has been approved.")
+                            # Mark as notified
+                            metadata['notified'] = True
+                            with open(os.path.join(eval_path, 'metadata.yaml'), 'w') as meta_file:
+                                yaml.dump(metadata, meta_file)
+                        elif status == 'rejected':
+                            st.error(f"Your submission '{os.path.basename(eval_path)}' has been rejected.")
+                            # Display manager's notes if available
+                            notes = metadata.get('manager_notes', '')
+                            if notes:
+                                st.info(f"Manager's Notes: {notes}")
+
+                            # Provide option to reclassify
+                            if st.button(f"Reclassify submission '{os.path.basename(eval_path)}'") or st.session_state.showsubmissions:
+                                st.session_state.showsubmissions = True
+                                # Load the submission files and allow reclassification
+                                st.session_state.uploaded_files = []
+                                class_file = os.path.join(eval_path, 'classification.csv')
+                                if os.path.exists(class_file):
+                                    eval_df = pd.read_csv(class_file)
+                                    st.subheader("Previous Classification Results")
+                                    edited_df = st.data_editor(eval_df, use_container_width=True, column_config={
+                                        "Classification": st.column_config.SelectboxColumn(
+                                            "Classification",
+                                            width="medium",
+                                            options=[t("ts"), t("s"), t("c"), t("r"), t("u")],
+                                            required=True,
+                                        )
+                                    }, num_rows="fixed")
+                                    # Save reclassified data
+                                    if st.button("Submit Reclassified Evaluation"):
+                                        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                                        new_eval_id = f"{st.session_state['username']}_{timestamp}"
+                                        new_eval_dir = f"evaluations/{new_eval_id}"
+                                        os.makedirs(new_eval_dir, exist_ok=True)
+                                        edited_df.to_csv(os.path.join(new_eval_dir, 'classification.csv'), index=False)
+                                        # Copy files over
+                                        files_in_eval = [f for f in os.listdir(eval_path) if f != 'classification.csv' and f != 'metadata.yaml']
+                                        for file in files_in_eval:
+                                            shutil.copy(os.path.join(eval_path, file), new_eval_dir)
+                                        # Create new metadata
+                                        with open(os.path.join(new_eval_dir, 'metadata.yaml'), 'w') as meta_file:
+                                            yaml.dump({'status': 'pending', 'user': st.session_state['username']}, meta_file)
+                                        st.success('Your reclassified evaluation has been sent to the manager for review.')
+                                        st.session_state.showsubmissions = False
+
+                                        # Mark as notified
+                                        metadata['notified'] = True
+                                        with open(os.path.join(eval_path, 'metadata.yaml'), 'w') as meta_file:
+                                            yaml.dump(metadata, meta_file)
+                                        st.rerun()
+
+                                else:
+                                    st.error('Classification file not found in the rejected submission.')
+
+                # Check for submissions
+                user_submissions = check_submission_status(st.session_state['username'])
+                if user_submissions:
+                    notify_user(user_submissions)
 
                 installed_models = get_installed_models()
                 local_models = ["gemma2", "phi3", "llama3", "mistral", "llama3.1", "mistral-nemo", "mertergun/phi3_finetuned", "gemma2", "qwen2"]
@@ -167,7 +267,7 @@ def main():
                         else:
                             st.error("Failed to pull the selected model.")
 
-                # Set a radio button to select the select upload files or scan a directory
+                # Set a radio button to select the upload files or scan a directory
                 option = st.radio(t("option_radio"), [t("upload_files"), t("scan_directory")])
 
                 if option == t("scan_directory"):
@@ -182,7 +282,7 @@ def main():
                         if st.session_state.results:
                             results_df = pd.DataFrame(st.session_state.results)
                             st.subheader(t("classification_results"))
-                            # Make the dataframe editable, so user change the classification if needed using selectbox in the Classification column
+                            # Make the dataframe editable, so user can change the classification if needed using selectbox in the Classification column
                             edited_df = st.data_editor(results_df, use_container_width=True, column_config={
                                 "Classification": st.column_config.SelectboxColumn(
                                     "Classification",
@@ -237,6 +337,9 @@ def main():
                                 # Save the files
                                 for doc in st.session_state.documents:
                                     shutil.copy(doc, evaluation_dir)
+                                # Create a metadata file
+                                with open(os.path.join(evaluation_dir, 'metadata.yaml'), 'w') as meta_file:
+                                    yaml.dump({'status': 'pending', 'user': st.session_state['username']}, meta_file)
                                 st.success('Your evaluation has been sent to the manager for review.')
 
                         else:
@@ -303,11 +406,14 @@ def main():
                                         file_path = os.path.join(evaluation_dir, file.name)
                                         with open(file_path, 'wb') as f:
                                             f.write(file.getbuffer())
+                                    # Create a metadata file
+                                    with open(os.path.join(evaluation_dir, 'metadata.yaml'), 'w') as meta_file:
+                                        yaml.dump({'status': 'pending', 'user': st.session_state['username']}, meta_file)
                                     st.success('Your evaluation has been sent to the manager for review.')
 
                             else:
                                 st.subheader(t("classification_results"))
-                                # Make the dataframe editable, so user change the classification if needed using selectbox in the Classification column
+                                # Make the dataframe editable, so user can change the classification if needed using selectbox in the Classification column
                                 edited_df = st.data_editor(results_df, use_container_width=True, column_config={
                                     "Classification": st.column_config.SelectboxColumn(
                                         "Classification",
@@ -354,7 +460,8 @@ def main():
                                 if st.button('Send to manager for evaluation'):
                                     # Save the edited_df and files
                                     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-                                    evaluation_dir = f"evaluations/{st.session_state['username']}_{timestamp}"
+                                    evaluation_id = f"{st.session_state['username']}_{timestamp}"
+                                    evaluation_dir = f"evaluations/{evaluation_id}"
                                     if not os.path.exists(evaluation_dir):
                                         os.makedirs(evaluation_dir)
                                     # Save the edited DataFrame
@@ -364,6 +471,9 @@ def main():
                                         file_path = os.path.join(evaluation_dir, file.name)
                                         with open(file_path, 'wb') as f:
                                             f.write(file.getbuffer())
+                                    # Create a metadata file
+                                    with open(os.path.join(evaluation_dir, 'metadata.yaml'), 'w') as meta_file:
+                                        yaml.dump({'status': 'pending', 'user': st.session_state['username']}, meta_file)
                                     st.success('Your evaluation has been sent to the manager for review.')
 
                         else:
@@ -407,7 +517,7 @@ def main():
                         st.dataframe(eval_df)
                         # List files included in the evaluation
                         st.write('Files included in this evaluation:')
-                        files_in_eval = [f for f in os.listdir(selected_dir) if f != 'classification.csv']
+                        files_in_eval = [f for f in os.listdir(selected_dir) if f != 'classification.csv' and f != 'metadata.yaml']
                         for file in files_in_eval:
                             file_path = os.path.join(selected_dir, file)
                             with open(file_path, 'rb') as f:
@@ -417,10 +527,20 @@ def main():
                                 data=file_bytes,
                                 file_name=file,
                             )
-                        # Approve or Disapprove buttons
+                        # Approve or Disapprove buttons with notes
+                        st.write('Please add your notes or comments if disapproving the submission:')
+                        manager_notes = st.text_area('Manager Notes', '')
                         col1, col2 = st.columns(2)
                         with col1:
-                            if st.button('Approve'):
+                            if st.button('Approve', type='primary'):
+                                # Update metadata
+                                with open(os.path.join(selected_dir, 'metadata.yaml'), 'r') as meta_file:
+                                    metadata = yaml.load(meta_file, Loader=SafeLoader)
+                                metadata['status'] = 'approved'
+                                metadata['manager_notes'] = ''
+                                metadata['notified'] = False
+                                with open(os.path.join(selected_dir, 'metadata.yaml'), 'w') as meta_file:
+                                    yaml.dump(metadata, meta_file)
                                 # Move the evaluation directory to the 'approved' directory
                                 if not os.path.exists('approved'):
                                     os.makedirs('approved')
@@ -428,13 +548,24 @@ def main():
                                 st.success('Evaluation approved.')
                                 st.rerun()
                         with col2:
-                            if st.button('Disapprove'):
-                                # Move the evaluation directory to the 'disapproved' directory
-                                if not os.path.exists('disapproved'):
-                                    os.makedirs('disapproved')
-                                shutil.move(selected_dir, os.path.join('disapproved', os.path.basename(selected_dir)))
-                                st.warning('Evaluation disapproved.')
-                                st.rerun()
+                            if st.button('Disapprove', type='primary'):
+                                if not manager_notes.strip():
+                                    st.error('Please provide notes explaining why the submission was disapproved.')
+                                else:
+                                    # Update metadata
+                                    with open(os.path.join(selected_dir, 'metadata.yaml'), 'r') as meta_file:
+                                        metadata = yaml.load(meta_file, Loader=SafeLoader)
+                                    metadata['status'] = 'rejected'
+                                    metadata['manager_notes'] = manager_notes
+                                    metadata['notified'] = False
+                                    with open(os.path.join(selected_dir, 'metadata.yaml'), 'w') as meta_file:
+                                        yaml.dump(metadata, meta_file)
+                                    # Move the evaluation directory to the 'disapproved' directory
+                                    if not os.path.exists('disapproved'):
+                                        os.makedirs('disapproved')
+                                    shutil.move(selected_dir, os.path.join('disapproved', os.path.basename(selected_dir)))
+                                    st.warning('Evaluation disapproved with notes.')
+                                    st.rerun()
                     else:
                         st.error('Classification file not found in this evaluation.')
                 else:
