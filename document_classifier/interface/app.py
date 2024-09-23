@@ -44,8 +44,9 @@ def check_first_time_login(username):
     with open("./credentials.yaml", "r") as file:
         credentials = yaml.load(file, Loader=SafeLoader)
         first_time = credentials['credentials']['usernames'][username]['first_time_login']
+        last_time = time.time() - credentials['credentials']['usernames'][username]['last_change'] > 90 * 24 * 60 * 60
 
-    return first_time
+    return first_time or last_time
 
 translations = get_translations()
 
@@ -79,6 +80,7 @@ def main():
                                                                                     'Reset':'Reset / Sıfırla'}):
                     st.success('Password modified successfully / Şifre başarıyla değiştirildi')
                     credentials['credentials']['usernames'][st.session_state['username']]['first_time_login'] = False
+                    credentials['credentials']['usernames'][st.session_state['username']]['last_change'] = time.time()
                     st.session_state.changePassword = False
                     with open('./credentials.yaml', 'w') as file:
                         yaml.dump(credentials, file, default_flow_style=False)
